@@ -1,80 +1,121 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# 1. GENERACIÓN DE SEÑALES: CONTINUA VS DISCRETA
-# Señal "Continua" (Simulada)
-# Creamos un vector de tiempo con alta densidad de puntos para simular continuidad
-t_continuo = np.linspace(0, 1, 1000) 
-f0 = 5  # Frecuencia fundamental de 5 Hz [4]
+# --- 1. Generación de señales en el tiempo ---
 
-# Señal senoidal matemática: x(t) = A * cos(2*pi*f0*t + phi) [4]
+# Señal continua (usamos muchos puntos para simular la continuidad)
+t_continuo = np.linspace(0, 1, 1000)
+f0 = 5  # Frecuencia fundamental de 5 Hz
 x_continuo = np.cos(2 * np.pi * f0 * t_continuo)
 
-# Señal Discreta
-# Para la secuencia discreta x[n], definimos una frecuencia de muestreo Fs baja [3]
-Fs = 20  
-T = 1 / Fs  # Intervalo de muestreo uniforme T [3]
-n = np.arange(0, 1, T) # Vector de muestras discretas [3]
-
-# Evaluamos la misma onda, pero solo en los instantes de muestreo
+# Señal discreta (muestreada)
+Fs = 20  # Frecuencia de muestreo baja para que se noten los puntos
+T = 1 / Fs
+n = np.arange(0, 1, T)
 x_discreto = np.cos(2 * np.pi * f0 * n)
 
-# ==============================================================================
-# 2. GENERACIÓN DE SEÑALES: PERIÓDICA VS APERIÓDICA
-# ==============================================================================
+# Ventana de observación para las otras señales
+t_vent = np.linspace(-1, 1, 1000)
 
-t_vent = np.linspace(-1, 1, 1000) # Ventana de observación temporal
-
-# Señal Periódica
-# Se modela usando una onda senoidal pura, la cual se repite teóricamente 
-# hasta el infinito [4].
+# Señal periódica (onda senoidal pura)
 x_periodica = np.sin(2 * np.pi * 3 * t_vent)
 
-# Señal Aperiódica (Pulso Rectangular)
-# Es un pulso de duración finita tau. Se define como 1 para |t| <= tau/2, 
-# y 0 en los bordes truncados [5, 6].
-tau = 0.5  
+# Señal aperiódica (pulso rectangular de ancho 0.5)
+tau = 0.5
 x_aperiodica = np.where(np.abs(t_vent) <= tau / 2, 1, 0)
 
-# ==============================================================================
-# 3. VISUALIZACIÓN DE LOS RESULTADOS (MATPLOTLIB)
-# ==============================================================================
-plt.figure(figsize=(14, 10))
+# Función escalón unitario (requerida por la rúbrica)
+x_escalon = np.where(t_vent >= 0, 1, 0)
 
-# -- Gráfico 1: Señal Continua --
+
+# --- 2. Gráficas del dominio del tiempo ---
+plt.figure(figsize=(12, 8))
+
 plt.subplot(2, 2, 1)
-plt.plot(t_continuo, x_continuo, color='royalblue', linewidth=2)
-plt.title('1A. Señal Continua (Simulación de Alta Resolución)', fontsize=12, fontweight='bold')
-plt.xlabel('Tiempo $t$ (s)')
-plt.ylabel('Amplitud $x(t)$')
+plt.plot(t_continuo, x_continuo, color='royalblue')
+plt.title('Señal Continua')
+plt.xlabel('Tiempo (s)')
 plt.grid(True, linestyle='--', alpha=0.7)
 
-# -- Gráfico 2: Señal Discreta --
 plt.subplot(2, 2, 2)
-# Utilizamos 'stem' porque es la forma estándar de visualizar secuencias x[n] [3]
-plt.stem(n, x_discreto, linefmt='r-', markerfmt='ro', basefmt='k-')
-plt.title('1B. Señal Discreta (Secuencia Muestreada)', fontsize=12, fontweight='bold')
-plt.xlabel('Muestras $n$ (Intervalo $T$)')
-plt.ylabel('Amplitud $x[n]$')
+plt.stem(n, x_discreto, basefmt='k-')
+plt.title('Señal Discreta')
+plt.xlabel('Muestras n')
 plt.grid(True, linestyle='--', alpha=0.7)
 
-# -- Gráfico 3: Señal Periódica --
 plt.subplot(2, 2, 3)
-plt.plot(t_vent, x_periodica, color='seagreen', linewidth=2)
-plt.title('2A. Señal Periódica (Onda Senoidal Infinita)', fontsize=12, fontweight='bold')
-plt.xlabel('Tiempo $t$ (s)')
-plt.ylabel('Amplitud')
+plt.plot(t_vent, x_periodica, color='seagreen')
+plt.title('Señal Periódica')
+plt.xlabel('Tiempo (s)')
 plt.grid(True, linestyle='--', alpha=0.7)
 
-# -- Gráfico 4: Señal Aperiódica --
 plt.subplot(2, 2, 4)
-plt.plot(t_vent, x_aperiodica, color='darkorange', linewidth=2)
-plt.fill_between(t_vent, x_aperiodica, color='darkorange', alpha=0.3) # Sombreado para destacar la energía finita
-plt.title('2B. Señal Aperiódica (Pulso Rectangular Finito)', fontsize=12, fontweight='bold')
-plt.xlabel('Tiempo $t$ (s)')
-plt.ylabel('Amplitud')
+plt.plot(t_vent, x_aperiodica, color='darkorange')
+plt.fill_between(t_vent, x_aperiodica, color='darkorange', alpha=0.3)
+plt.title('Señal Aperiódica (Pulso Rectangular)')
+plt.xlabel('Tiempo (s)')
 plt.grid(True, linestyle='--', alpha=0.7)
 
-# Ajustar márgenes para que no se superpongan los textos
 plt.tight_layout()
+
+
+# --- 3. Transformada de Fourier y propiedades ---
+
+N = len(t_vent)
+dt = t_vent[1] - t_vent[0]
+
+# Generamos el eje X de frecuencias y lo centramos en cero
+frecuencias = np.fft.fftshift(np.fft.fftfreq(N, dt))
+
+# Calculamos FFT del pulso original y centramos el espectro
+fft_aperiodica = np.fft.fftshift(np.fft.fft(x_aperiodica))
+magnitud_aperiodica = np.abs(fft_aperiodica) / N
+
+# Calculamos la fase, aplicando un filtro para limpiar el ruido numérico
+# en las frecuencias donde la magnitud es prácticamente cero
+fase_aperiodica = np.angle(fft_aperiodica)
+fase_aperiodica[magnitud_aperiodica < 1e-6] = 0 
+
+# Para verificar la propiedad de desplazamiento en el tiempo, 
+# movemos el pulso 0.25 segundos a la derecha y le sacamos la FFT
+x_desplazada = np.where(np.abs(t_vent - 0.25) <= tau / 2, 1, 0)
+fft_desplazada = np.fft.fftshift(np.fft.fft(x_desplazada))
+magnitud_desplazada = np.abs(fft_desplazada) / N
+
+fase_desplazada = np.angle(fft_desplazada)
+fase_desplazada[magnitud_desplazada < 1e-6] = 0 
+
+
+# --- 4. Gráficas del dominio de la frecuencia ---
+plt.figure(figsize=(12, 8))
+
+# Magnitud y fase del pulso centrado
+plt.subplot(2, 2, 1)
+plt.plot(frecuencias, magnitud_aperiodica, color='purple')
+plt.title('Magnitud (Pulso centrado)')
+plt.xlim(-20, 20)
+plt.grid(True, linestyle='--', alpha=0.7)
+
+plt.subplot(2, 2, 2)
+plt.plot(frecuencias, fase_aperiodica, color='teal')
+plt.title('Fase (Pulso centrado)')
+plt.xlim(-20, 20)
+plt.grid(True, linestyle='--', alpha=0.7)
+
+# Magnitud y fase del pulso desplazado
+plt.subplot(2, 2, 3)
+plt.plot(frecuencias, magnitud_desplazada, color='purple')
+plt.title('Magnitud (Pulso desplazado en t=0.25)')
+plt.xlim(-20, 20)
+plt.grid(True, linestyle='--', alpha=0.7)
+
+plt.subplot(2, 2, 4)
+plt.plot(frecuencias, fase_desplazada, color='crimson')
+plt.title('Fase (Pulso desplazado en t=0.25)')
+plt.xlim(-20, 20)
+plt.grid(True, linestyle='--', alpha=0.7)
+
+plt.tight_layout()
+
+# Esto abrirá las dos figuras juntas
 plt.show()
